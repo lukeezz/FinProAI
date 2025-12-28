@@ -221,7 +221,14 @@ class NutritionDatabase:
             # Extract data
             date = entry_data.get('date', datetime.now().strftime('%Y-%m-%d'))
             food_name = entry_data.get('food', 'Unknown')
-            portion = entry_data.get('portion', 'Normal')
+            
+            # Handle both 'portion' and 'portion_grams'
+            if 'portion' in entry_data:
+                portion = entry_data.get('portion', 'Normal')
+            elif 'portion_grams' in entry_data:
+                portion = f"{entry_data.get('portion_grams')}g"
+            else:
+                portion = 'Normal'
             
             nutrition = entry_data.get('nutrition', {})
             calories = extract_number(nutrition.get('calories', '0 kcal'))
@@ -292,6 +299,94 @@ class NutritionDatabase:
             return entries
         except Exception as e:
             print(f"❌ Error getting daily entries: {e}")
+            return []
+    
+    def get_daily_nutrition_summary(self, user_id: int, date: str) -> Dict:
+        """Get daily nutrition summary for a specific date"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+            SELECT 
+                COUNT(*) as food_count,
+                SUM(calories) as total_calories,
+                SUM(protein) as total_protein,
+                SUM(fat) as total_fat,
+                SUM(carbs) as total_carbs,
+                SUM(water_ml) as total_water,
+                SUM(exercise_min) as total_exercise
+            FROM daily_entries 
+            WHERE user_id = ? AND date = ?
+            ''', (user_id, date))
+            
+            row = cursor.fetchone()
+            conn.close()
+            
+            if row:
+                summary = dict(row)
+                # Ensure all values are present
+                default_values = {
+                    'food_count': 0,
+                    'total_calories': 0,
+                    'total_protein': 0,
+                    'total_fat': 0,
+                    'total_carbs': 0,
+                    'total_water': 0,
+                    'total_exercise': 0
+                }
+                
+                # Fill missing values with defaults
+                for key, default in default_values.items():
+                    if key not in summary or summary[key] is None:
+                        summary[key] = default
+                
+                return summary
+            else:
+                return {
+                    'food_count': 0,
+                    'total_calories': 0,
+                    'total_protein': 0,
+                    'total_fat': 0,
+                    'total_carbs': 0,
+                    'total_water': 0,
+                    'total_exercise': 0
+                }
+        except Exception as e:
+            print(f"❌ Error getting daily summary: {e}")
+            return {
+                'food_count': 0,
+                'total_calories': 0,
+                'total_protein': 0,
+                'total_fat': 0,
+                'total_carbs': 0,
+                'total_water': 0,
+                'total_exercise': 0
+            }
+    
+    def get_entries_by_date_range(self, user_id: int, start_date: str, end_date: str) -> List[Dict]:
+        """Get entries within a date range"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+            SELECT * FROM daily_entries 
+            WHERE user_id = ? AND date BETWEEN ? AND ?
+            ORDER BY date DESC, created_at DESC
+            ''', (user_id, start_date, end_date))
+            
+            rows = cursor.fetchall()
+            conn.close()
+            
+            entries = []
+            for row in rows:
+                entry = dict(row)
+                entries.append(entry)
+            
+            return entries
+        except Exception as e:
+            print(f"❌ Error getting entries by date range: {e}")
             return []
     
     def get_user_summary(self, user_id: int, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict:

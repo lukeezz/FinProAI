@@ -541,6 +541,7 @@ def home_page():
                         entry_data = {
                             "food": food_name,
                             "portion_grams": portion_grams,
+                            "portion": f"{portion_grams}g",  # PERBAIKAN: Tambahkan key 'portion'
                             "nutrition": nutrition,
                             "water": water,
                             "exercise": exercise,
@@ -587,6 +588,7 @@ def home_page():
                         entry_data = {
                             "food": food_name,
                             "portion_grams": portion_grams,
+                            "portion": f"{portion_grams}g",  # PERBAIKAN: Tambahkan key 'portion'
                             "nutrition": nutrition,
                             "water": water,
                             "exercise": exercise,
@@ -998,7 +1000,7 @@ def history_page():
                                     st.success("Dihapus!")
                                     st.rerun()
                             except Exception as e:
-                                st.error(f"Error menghapus: {str(e)}")
+                                    st.error(f"Error menghapus: {str(e)}")
                     
                     created_at = entry.get('created_at', '')
                     time_str = created_at[11:16] if created_at and len(created_at) > 16 else 'Unknown'
@@ -1498,3 +1500,4 @@ else:
         if st.button("Kembali ke Home"):
             st.session_state.page = "home"
             st.rerun()
+            
